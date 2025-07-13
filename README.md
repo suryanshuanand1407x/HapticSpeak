@@ -91,7 +91,3 @@ pip install pyaudio
 
 Suryanshu Anand
 HapticSpeak Project – July 2025
-
----
-
-Let me know if you'd like this exported as a `.zip` bundle including the WAV generator or a GitHub-ready folder structure.
