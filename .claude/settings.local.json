@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(brew install:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(conda install:*)",
+      "Bash(pip cache:*)",
+      "Bash(espeak:*)",
+      "Bash(export:*)",
+      "Bash(cat:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
