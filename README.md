@@ -16,20 +16,6 @@ This is a prototype for **HapticSpeak** — a system that converts real-time **s
 
 ---
 
-## 📁 Folder Structure
-
-project/
-├── phoneme_sender.py              # Main script for recording, decoding, and playing
-├── requirements.txt               # Python dependencies
-├── README.md                      # This file
-├── phoneme_sounds/               # Folder with WAV files like AH.wav, B.wav, etc.
-│   ├── AH.wav
-│   ├── B.wav
-│   ├── S.wav
-│   └── …
-
----
-
 ## ⚙️ Setup Instructions
 
 ### 1. Create and Activate Virtual Environment
