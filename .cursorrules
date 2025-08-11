@@ -1,0 +1,106 @@
+# .cursorrules — HapticSpeak
+
+# Purpose
+Guide Cursor’s AI to write fast, testable, and latency‑safe code for HapticSpeak (real‑time speech→phoneme→haptic system). Treat this file as the project’s AI “system prompt.”
+
+## Project Identity
+- Name: **HapticSpeak**
+- Elevator pitch: *Convert live speech into ARPAbet phonemes and render them as learnable haptic tactons with ≤200 ms end‑to‑end latency.*
+
+## Goals
+1) **Real‑time** phoneme extraction and mapping to haptic tactons.  
+2) **Strict offline** pipeline at runtime (no network calls).  
+3) **Deterministic mapping** from phoneme tokens → `{waveform, amplitude, duration, gap}` using a JSON codebook.  
+4) Clean, small diffs with tests, profiling hooks, and docs updated alongside code.
+
+## Non‑Goals (for v1)
+- Multi‑language beyond English (en‑US).  
+- Multi‑motor wearables; single ERM motor via DRV2605L only.  
+- Cloud ASR.  
+- Fancy UI—CLI/console is fine unless explicitly asked.
+
+## Performance & Constraints
+- **Latency budget (phoneme onset → haptic event):** hard cap **≤ 200 ms**, targets **median ≤ 120 ms**, **P95 ≤ 180 ms**.  
+- **Power (30‑min run):** reasonable CPU/GPU usage; avoid thermal throttling.  
+- **Chunking:** 20–30 ms frames, overlap/hop ≈ 10 ms; streaming ASR windows 0.5–2.0 s with overlap.
+
+## Runtime Modes
+- **Desktop dev:** Python prototype using Whisper (tiny/tiny.en), Phonemizer, and WAV cues (speaker) or UART → ESP32 → DRV2605L.  
+- **Mobile (later):** `whisper.cpp` (Metal) in Swift; optional Core ML after v1.
+
+## Tech Stack Targets
+- Python 3.10+.  
+- Packages: `openai-whisper`, `phonemizer`, `pyaudio`, `simpleaudio`, `torch`, `ffmpeg-python`.  
+- MCU: ESP32 (UART, I²C) with TI DRV2605L (ERM motor).  
+- Optional iOS: Swift, AVAudioEngine, whisper.cpp (Metal).
+
+## Repository Map (canonical)
+- `phoneme_sender.py` — mic capture → ASR → phonemizer → demo audio cues.  
+- `english_phoneme_vibration_map.json` — phoneme→tacton codebook (single source of truth).  
+- `phoneme_sounds/` — per‑phoneme WAV demos.  
+- `haptic_web_tester.py` — local visualization/test harness.  
+- `firmware/esp32/` — (planned) UART parser + DRV2605L I²C driver + scheduler.  
+- `scripts/` — (planned) MFA alignment, evaluation, latency profiler.  
+- `docs/` — (planned) diagrams, benchmarks, and usage.
+
+## Cursor Behaviors (important)
+- Before coding: **summarize plan** in 3–6 bullets, list files to edit/create, and how you’ll test.  
+- Prefer **small, surgical diffs** and keep changes **cohesive** per PR.  
+- **Ask clarifying questions** if requirements are ambiguous (but propose a default).  
+- **Never** introduce network calls unless explicitly requested.  
+- If changing the mapping or serial protocol, **update README/docs** and add a test/example.
+
+## Coding Standards
+- Python: PEP 8, type hints where useful, **Black** formatting, **Ruff** for lint.  
+- Logging: structured, minimal; surface **latency (ms)** at each stage; use `--verbose` to enable.  
+- Errors: fail fast with helpful messages; never swallow exceptions silently.  
+- Config: pull tunables from flags/env (model name, chunk sizes, device, serial port, baud).
+
+## Data & Mapping Rules
+- Use **ARPAbet** tokens (with stress digits if produced by G2P).  
+- If token not found: emit **`UNK` tacton** + schwa‑biased vowel (`AH`) fallback; keep primary stress as amplitude bump (+20–30%).  
+- The JSON codebook controls waveform, amplitude (0–255), duration (ms), and gap (ms). Do **not** hard‑code patterns.
+
+## Serial Protocol (host→ESP32)
+CSV line (or JSON‑line) format:  
+`<ts_ms>,<phoneme>,<amp_0_255>,<dur_ms>,<gap_ms>,<wave_id>`  
+Example: `12345,AH,180,120,20,3`  
+ESP32 must parse line non‑blocking and schedule I²C writes to DRV2605L.
+
+## Tests & Profiling
+- Provide a `scripts/profile_latency.py` that prints **capture, ASR, G2P, mapping, UART/I²C** timings and **E2E**.  
+- Unit tests for: mapping lookup, OOV policy, serial line encode/decode.  
+- Save benchmark snapshots to `docs/benchmarks/*.md`.
+
+## Tasks (top priority for Cursor)
+1) Add a **latency profiler** around `phoneme_sender.py` stages; emit JSON logs.  
+2) Create a **mapping validator** script that checks `english_phoneme_vibration_map.json` for missing tokens/invalid ranges.  
+3) Implement a **serial bridge** module (`src/serial_bridge.py`) with retry/back‑pressure handling.  
+4) Provide a **CLI** with flags: `--model`, `--device`, `--chunk-ms`, `--hop-ms`, `--serial`, `--baud`, `--demo-audio`.  
+5) Scaffold `firmware/esp32/` with UART parser + DRV2605L scheduler skeleton.
+
+## Commands & Setup (dev convenience)
+- Create venv: `python -m venv .venv && source .venv/bin/activate` (Win: `.venv\\Scripts\\activate`).  
+- FFmpeg: ensure installed in PATH.  
+- Install: `pip install -r requirements.txt` (include `pyaudio` platform notes).  
+- Run demo: `python phoneme_sender.py --model tiny.en --chunk-ms 1000 --hop-ms 250 --device cuda --demo-audio`  
+- Send to ESP32: add `--serial COM5 --baud 115200` (or `/dev/tty.usbserial*`).
+
+## Documentation Expectations (Definition of Done)
+- Code compiles, runs, and **meets latency targets** on a short demo.  
+- **README/docs** updated with usage, flags, and any protocol/mapping changes.  
+- Include a short **CHANGELOG** entry.
+
+## Security/Privacy
+- No telemetry, analytics, or network egress in runtime path.  
+- Redact/avoid storing raw mic audio unless explicitly enabled.
+
+## File Guards
+- Do **not** commit large audio datasets to the repo; prefer `.gitignore` and (optionally) `.cursorignore`.  
+- Keep secrets out of code (not expected for offline v1).
+
+## Nice‑to‑Have (if time permits)
+- Add **SpecAugment** toggle for robustness experiments.  
+- Optional BLE transport for iOS accessory (separate module; not default for v1).
+
+# End of .cursorrules

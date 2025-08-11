@@ -7,4 +7,5 @@ soundfile
 ffmpeg-python
 praatio
 montreal-forced-aligner
+pytest
 
