@@ -1,0 +1,10 @@
+numpy
+pandas
+tqdm
+requests
+librosa
+soundfile
+ffmpeg-python
+praatio
+montreal-forced-aligner
+
